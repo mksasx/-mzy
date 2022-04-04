@@ -1,245 +1,130 @@
+#pragma GCC optimize ("O3")
+#pragma once
+#pragma pack (16)
 #include<stdio.h>
 #include<stdlib.h>
-#include<string.h>
-#include<ctype.h>
-#define branchNum 26
-//char Stop_words[500][30];//停词
-char Stop_words[6000];
-char Article[6377000+10];//文章
-
-typedef struct TrieNode
-{
-	int count; //单词出现的频度
-	struct TrieNode *child[branchNum];
-}TrieNode,*TrieTree;
-
-typedef struct sentence{//句子 后期考虑桶排序
-    char whole_sentence[1500];//完整的将句子存储
-    int sum_fre;//句子的总频率
-}sentence;
-
-int Stop_lenth;
-sentence sentence_list[215000];//句子表
-char word_temp[25];//temp
-
-void sep_Stop_words(TrieTree t);
-int find_stop_words(TrieTree t,char word[]);//判断单词是否停词
-int work_out_sum_fre(TrieTree t,char sentence_1[]);//统计一个句子中非停词的总频度
-char lower_to_upper(char x);//小写->大写
-
-TrieNode *trie_create_node();//创建一个结点
-void trie_insert_stop_word(TrieTree t,char word[]);//插入一个停词
-void trie_insert_word(TrieTree t,char word[]);//插入一个单词
-int trie_search_word(TrieTree t,char word[]);//查找单词
-int trie_word_count(TrieTree t,char word[]);//统计单词出现的频度
-
-int comp_sentence(const void*a,const void *b) {
-    sentence aa = *(sentence*)a;
-    sentence bb = *(sentence*)b;
-    return bb.sum_fre - aa.sum_fre;
-}
-
+#define SIZE 1000005
+#define Sens 120000
+struct sentence{
+	int sen[2];
+	int frequency;
+	int sentenceorder; 
+}Sen[Sens]; 
+int min(int x, int y);
+int cmp(const void*p1,const void*p2);
+int i,j,m,l=0,ll,n,flag=0,temp;
+int SenNum=0,senbegin[SIZE],VacNum=0,VacFre[SIZE*5],*VacFrePtr;
+char s[SIZE*7],tmp[200],buff[2000],ch;
+int Trie[1000010][26];
+int Freqc[1000010]={0};
+int pos=1,p=0;
 int main()
 {
-    TrieTree root=trie_create_node();
-    FILE *stop,*in,*out;
-    int N,i,Article_lenth,p;
-    char al_x;
-	stop=fopen("stopwords.txt","r");
-	in=fopen("article.txt","r");
-	Article_lenth=fread(Article,1,6377010,in);
-	Article_lenth=strlen(Article);
-	Stop_lenth=fread(Stop_words,1,6500,stop);
-    sep_Stop_words(root);
-	//Stop_lenth=0;
-	//while(fscanf(stop,"%s",Stop_words[Stop_lenth++])!=EOF) ;
-	fclose(in);
-	fclose(stop);
-	//读入
-	scanf("%d",&N);//输出N个
-	int sentence_pos=0,word_temp_pos=0,single_sentence_pos=0;
-	for(p=0;p<25;p++){
-        word_temp[p]='\0';
-    }
-    for(i=0;i<Article_lenth;i++){
-        if(single_sentence_pos==0&&Article[i]==' ') continue;
-        sentence_list[sentence_pos].whole_sentence[single_sentence_pos++]=Article[i];
-        if(isalpha(Article[i])){
-            al_x=lower_to_upper(Article[i]);
-            word_temp[word_temp_pos++]=al_x;
-        }
-        else{
-            if(word_temp_pos==0) ;
-            else if(!find_stop_words(root,word_temp)){
-                trie_insert_word(root,word_temp);
-            }
-            for(p=0;p<word_temp_pos+1;p++){
-                word_temp[p]='\0';
-            }
-            word_temp_pos=0;
-        }
-        if(Article[i]=='.'||Article[i]=='?'||Article[i]=='!'){
-            sentence_pos++;
-            single_sentence_pos=0;
-            continue;
-        }
-    }
-    for(i=0;i<sentence_pos;i++){
-        sentence_list[i].sum_fre=work_out_sum_fre(root,sentence_list[i].whole_sentence);
-    }
-    qsort(sentence_list,sentence_pos,sizeof(sentence_list[1]),comp_sentence);
-    /*
-    for(i=0;i<sentence_pos;i++){
-        printf("%d %s\n\n",sentence_list[i].sum_fre,sentence_list[i].whole_sentence);
-    }
-    */
-    for(i=0;i<5;i++){
-        printf("%d %s\n",sentence_list[i].sum_fre,sentence_list[i].whole_sentence);
-    }
-    out=fopen("results.txt","w");
-    for(i=0;i<N;i++){
-        fprintf(out,"%d %s\n",sentence_list[i].sum_fre,sentence_list[i].whole_sentence);
-    }
-    fclose(out);
-    return 0;
-}
-void sep_Stop_words(TrieTree t)
-{
-    char al_x;
-    int i;
-    int word_temp_pos=0,p;
-    for(p=0;p<25;p++){
-        word_temp[p]='\0';
-    }
-	for(i=0;i<Stop_lenth;i++){
-        if(isalpha(Stop_words[i])){
-            al_x=lower_to_upper(Stop_words[i]);
-            word_temp[word_temp_pos++]=al_x;
-        }
-        else{
-            if(word_temp_pos==0) continue;
-            trie_insert_stop_word(t,word_temp);//插入停词表
-            for(p=0;p<word_temp_pos;p++){
-                word_temp[p]='\0';
-            }
-            word_temp_pos=0;
-        }
-	}
-}
 
-int find_stop_words(TrieTree t,char word[])//判断一个单词是不是停词
-{
-    TrieNode *node=t;
-	while(*word&&node!=NULL)
+	scanf("%d",&n);
+	
+	FILE *fp = fopen("article.txt","r");
+	fread(s,sizeof(char),SIZE*7,fp);
+	m = ftell(fp)+1; 
+	flag = 1, l=0;    
+	for (i = 0; s[i]; i++)
 	{
-		node=node->child[*word-'a'];
-		word++;
+		if (flag!=0)
+		{   
+			senbegin[SenNum] = i; 
+			SenNum++;
+			flag = 0;
+		}
+		if ((s[i] >= 'A'&&s[i] <= 'Z') || (s[i] >= 'a'&&s[i] <= 'z'))
+		{ 
+			temp = (s[i] <= 'Z') ? s[i] - 'A' : s[i] - 'a'; 
+			if (!Trie[p][temp])
+				Trie[p][temp] = ++pos;	
+			p = Trie[p][temp];
+		}
+		else if (s[i] == '.' || s[i] == '!' || s[i] == '?'){
+			Freqc[p]++;
+			VacFre[++VacNum] = p;
+			VacFre[++VacNum] = -1;
+			p = 0;
+			flag = 1;
+		}
+		else
+		{
+			Freqc[p]++;
+			VacFre[++VacNum] = p;
+			p=0;
+		}	
+	} 
+	fclose(fp);
+
+	freopen("stopwords.txt", "r", stdin);
+	while (scanf("%s", buff) != EOF)
+	{  
+		p=0;
+		for(i=0;buff[i];i++){
+			temp = buff[i] - 'a';
+			if (!Trie[p][temp])
+				Trie[p][temp] = ++pos;	
+			p = Trie[p][temp];
+		}
+		Freqc[p]=0;
+	}  
+	fclose(stdin);
+	
+	VacFrePtr = &VacFre[0];
+	VacFre[++VacNum]=-1;
+	senbegin[SenNum] = 0x3f3f3f3f;
+	for (i = 0; i < SenNum; i++) 
+	{ 
+		l = 0,p = 0,temp=0;
+		Sen[i].sen[0]=senbegin[i];
+		Sen[i].sen[1]=min(m, senbegin[i + 1] - 1);
+		Sen[i].sentenceorder=i;
+		Freqc[0] = 0;
+		for (; *VacFrePtr != -1; ++VacFrePtr) {
+			Sen[i].frequency += Freqc[*VacFrePtr];
+		}
+		VacFrePtr++;
 	}
-	if(node!=NULL&&node->count==-1)//频度为-1且node不为空
-        return 1;
-	else
-		return 0;
-}
-
-int work_out_sum_fre(TrieTree t,char sentence_1[])
-{
-    int res=0;
-    int i,p;
-    int lenth=strlen(sentence_1);
-    int word_temp_pos=0;
-    char al_x;
-    for(p=0;p<25;p++){
-        word_temp[p]='\0';
-    }
-    for(i=0;i<lenth;i++){
-        if(isalpha(sentence_1[i])){//如果是字母
-            al_x=lower_to_upper(sentence_1[i]);//转为小写
-            word_temp[word_temp_pos++]=al_x;//记录这个字母
-        }
-        else{//不是字母，说明上一个单词结束了
-            if(word_temp_pos==0) continue;
-            //printf("%d %s\n",word_temp_pos,word_temp);
-            res+=trie_word_count(t,word_temp);//寻找这个单词的频度
-            word_temp_pos=0;
-            for( p=0;p<25;p++){
-                word_temp[p]='\0';
-            }
-        }
-    }
-    return res;
-}
-
-char lower_to_upper(char x)
-{
-    return (x>='A'&&x<='Z')?(x|0x20):x;//这里用其他方式也可以
-}
-
-
-TrieNode *trie_create_node()//创建一个tTrieNode节点
-{
-	TrieNode *temp=(TrieNode*)malloc(sizeof(TrieNode));
-	temp->count=0;
-	memset(temp->child,NULL,sizeof(temp->child));
-	return temp;
-}
-
-void trie_insert_stop_word(TrieTree t,char word[])//插入一个停词
-{
-    TrieNode *node;
-	node=t;
-	int index;
-	while(*word)
+	qsort(Sen,SenNum,sizeof(struct sentence),cmp);
+	
+	for(i=0;i<5;i++)
 	{
-		index=*word-'a';
-		if(node->child[index]==NULL)
-		node->child[index]=trie_create_node();
-		node=node->child[index];
-		word++;
+		printf("%d ",Sen[i].frequency);
+		int l=Sen[i].sen[1];
+		j=Sen[i].sen[0];
+		while (s[j] ==' '&& j <=l) j++;
+		for(;j<=l;j++)
+		{
+			putchar(s[j]);
+		}
+		puts("");
 	}
-	node->count=-1;//频度区分于其他单词
-}
-void trie_insert_word(TrieTree t,char word[])//插入单词
-{
-	TrieNode *node;
-	node=t;
-	int index;
-	while(*word)
+	freopen("results.txt", "w", stdout);
+	for(i=0;i<n;i++)
 	{
-		index=*word-'a';
-		if(node->child[index]==NULL)
-		node->child[index]=trie_create_node();
-		node=node->child[index];
-		word++;
+		printf("%d ",Sen[i].frequency);
+		int l=Sen[i].sen[1];
+		j=Sen[i].sen[0];
+		while (s[j] ==' '&& j <=l) j++;
+		for(;j<=l;j++)
+		{
+			putchar(s[j]);
+		}
+		puts("");
 	}
-	node->count++;//频度++
+	fclose(stdout);
+	return 0;
 }
-
-int trie_search_word(TrieTree t,char word[])//查找单词
+int min(int x, int y)
+{   
+	return x <= y ? x : y;
+}
+int cmp(const void*p1,const void*p2)
 {
-	TrieNode *node=t;
-	while(*word&&node!=NULL)
-	{
-		node=node->child[*word-'a'];
-		word++;
-	}
-	if(node!=NULL&&node->count>0)
-        return 1;
-	else
-		return 0;
+	struct sentence *a=(struct sentence*)p1;
+	struct sentence *b=(struct sentence*)p2;
+	if(a->frequency!=b->frequency)	return b->frequency-a->frequency; 
+	else return a->sentenceorder-b->sentenceorder ; 
 }
-
-int trie_word_count(TrieTree t,char word[])//统计单词出现的频度
-{
-    if(!trie_search_word(t,word)) return 0;
-	TrieNode *node=t;
-	while(*word&&node!=NULL)
-	{
-		node=node->child[*word-'a'];
-	    word++;
-	}
-    return node->count;
-}
-
-
-
-
